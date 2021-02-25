@@ -1,28 +1,18 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the Apache 2.0 License.
 import sys
-import base64
 import json
 import requests
 import random
 import argparse
 from pathlib import Path
 
-sys.path.append("../../../tests")
-import infra.crypto
+sys.path.append(".")
+import create_jwt
 
 
 def generate_npm_feed(data_dir: Path):
-    name = "npm"
-    issuer = f"localhost/{name}"  # localhost for local testing
-
-    jwt_key_priv_pem, _ = infra.crypto.generate_rsa_keypair(2048)
-    jwt_cert_pem = infra.crypto.generate_cert(jwt_key_priv_pem)
-
-    feed_dir = data_dir / name
-    feed_dir.mkdir(exist_ok=True)
-
-    write_jwks(feed_dir, jwt_cert_pem)
+    issuer = f"localhost/npm"  # localhost for local testing
 
     npm_search_url = (
         "https://registry.npmjs.org/-/v1/search?text=%22js%22&size=5"  # 250 max
@@ -42,30 +32,11 @@ def generate_npm_feed(data_dir: Path):
         pkg_info["iss"] = issuer
         pkg_info["sub"] = subject
 
-        json_path = feed_dir / f"{subject}.json".replace("/", "_")
-        with open(json_path, "w") as f:
-            json.dump(pkg_info, f, indent=2)
-
-        jwt = infra.crypto.create_jwt(
-            pkg_info, jwt_key_priv_pem, key_id=name, cert_pem=jwt_cert_pem
-        )
-        jwt_path = feed_dir / f"{subject}.jwt".replace("/", "_")
-        print(f"Writing {jwt_path}")
-        with open(jwt_path, "w") as f:
-            f.write(jwt)
+        create_jwt.write_jwt(data_dir, pkg_info)
 
 
 def generate_contoso_feed(data_dir: Path):
-    name = "contoso"
-    issuer = f"localhost/{name}"  # localhost for local testing
-
-    jwt_key_priv_pem, _ = infra.crypto.generate_rsa_keypair(2048)
-    jwt_cert_pem = infra.crypto.generate_cert(jwt_key_priv_pem)
-
-    feed_dir = data_dir / name
-    feed_dir.mkdir(exist_ok=True)
-
-    write_jwks(feed_dir, jwt_cert_pem)
+    issuer = f"localhost/contoso"  # localhost for local testing
 
     npm_feed_dir = data_dir / "npm"
     found = False
@@ -88,40 +59,10 @@ def generate_contoso_feed(data_dir: Path):
             "status": random.choice(["approved", "rejected"]),
         }
 
-        json_path = feed_dir / f"{subject}.json".replace("/", "_")
-        with open(json_path, "w") as f:
-            json.dump(audit, f, indent=2)
-
-        jwt = infra.crypto.create_jwt(
-            audit, jwt_key_priv_pem, key_id=name, cert_pem=jwt_cert_pem
-        )
-        jwt_path = feed_dir / f"{subject}.jwt".replace("/", "_")
-        print(f"Writing {jwt_path}")
-        with open(jwt_path, "w") as f:
-            f.write(jwt)
+        create_jwt.write_jwt(data_dir, audit)
 
     if not found:
         print('No receipts in npm feed folder found, run "submit_jwts.py npm" first')
-
-
-def write_jwks(feed_dir, jwt_cert_pem):
-    jwt_jwks_path = feed_dir / "certs"
-    print(f"Writing {jwt_jwks_path}")
-    with open(jwt_jwks_path, "w") as f:
-        jwks = create_jwks(feed_dir.name, jwt_cert_pem)
-        json.dump(jwks, f, indent=2)
-    well_known_dir = feed_dir / ".well-known"
-    well_known_dir.mkdir(exist_ok=True)
-    discovery_path = well_known_dir / "openid-configuration"
-    print(f"Writing {discovery_path}")
-    with open(discovery_path, "w") as f:
-        json.dump({"jwks_uri": f"https://localhost/{feed_dir.name}/certs"}, f)
-
-
-def create_jwks(kid, cert_pem):
-    der_b64 = base64.b64encode(infra.crypto.cert_pem_to_der(cert_pem)).decode("ascii")
-    return {"keys": [{"kty": "RSA", "kid": kid, "x5c": [der_b64]}]}
-
 
 def main(args):
     data_dir = Path("data")

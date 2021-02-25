@@ -20,4 +20,7 @@ python demo/submit_jwts.py npm
 # contoso references npm receipts, hence the command ordering
 python demo/generate_jwts.py contoso
 python demo/submit_jwts.py contoso
+# custom claims file (note: "iss" must be "localhost/<name>")
+python demo/create_jwt.py demo/sample-claims.json
+python demo/submit_jwts.py sample
 ```

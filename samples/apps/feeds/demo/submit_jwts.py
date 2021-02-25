@@ -10,23 +10,23 @@ from http import HTTPStatus
 import ccf.clients
 import ccf.proposal_generator
 
-CCF_HOST = "127.0.0.1"
-CCF_PORT = "8000"
+CCF_HOST_DEFAULT = "127.0.0.1"
+CCF_PORT_DEFAULT = "8000"
 CCF_WORKSPACE = "workspace/sandbox_common"
 CCF_CA = os.path.join(CCF_WORKSPACE, "networkcert.pem")
 CCF_MEMBER_KEY = os.path.join(CCF_WORKSPACE, "member0_privk.pem")
 CCF_MEMBER_CERT = os.path.join(CCF_WORKSPACE, "member0_cert.pem")
 
 
-def populate_feed(data_dir: Path, issuer_name: str):
-    client = ccf.clients.CCFClient(CCF_HOST, CCF_PORT, CCF_CA)
+def populate_feed(data_dir: Path, issuer_name: str, ccf_host: str, ccf_port: str):
+    client = ccf.clients.CCFClient(ccf_host, ccf_port, CCF_CA)
 
     feed_dir = data_dir / issuer_name
 
     # temporary until cert fetching moves to app
     jwt_issuer = f"https://localhost/{issuer_name}"
     tls_cert_path = data_dir / "tls_cert.pem"
-    propose_jwt_issuer(jwt_issuer, tls_cert_path, feed_dir)
+    propose_jwt_issuer(jwt_issuer, tls_cert_path, feed_dir, ccf_host, ccf_port)
 
     r = client.post(f"/app/register", {"issuer": f"localhost/{issuer_name}"})
     assert r.status_code in [HTTPStatus.OK.value, HTTPStatus.CREATED.value]
@@ -55,12 +55,12 @@ def populate_feed(data_dir: Path, issuer_name: str):
         print(f"Received {receipt_path} @ {seqno}")
 
 
-def propose_jwt_issuer(issuer, ca_cert_path, feed_dir):
+def propose_jwt_issuer(issuer, ca_cert_path, feed_dir, ccf_host: str, ccf_port: str):
     # temporary, until this can be moved into the app
 
     member_client = ccf.clients.CCFClient(
-        CCF_HOST,
-        CCF_PORT,
+        ccf_host,
+        ccf_port,
         CCF_CA,
         session_auth=ccf.clients.Identity(CCF_MEMBER_KEY, CCF_MEMBER_CERT, "member"),
         signing_auth=ccf.clients.Identity(CCF_MEMBER_KEY, CCF_MEMBER_CERT, "member"),
@@ -105,12 +105,14 @@ def main(args):
     data_dir = Path("data")
     data_dir.mkdir(exist_ok=True)
 
-    populate_feed(data_dir, args.issuer_name)
+    populate_feed(data_dir, args.issuer_name, args.host, args.port)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("issuer_name", choices=["npm", "contoso"])
+    parser.add_argument("issuer_name", help='Name of "data" subfolder')
+    parser.add_argument("--host", default=CCF_HOST_DEFAULT, help='CCF hostname')
+    parser.add_argument("--port", default=CCF_PORT_DEFAULT, help='CCF port')
     args = parser.parse_args()
 
     main(args)
