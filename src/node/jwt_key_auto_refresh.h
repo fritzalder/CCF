@@ -23,8 +23,8 @@ namespace ccf
     std::shared_ptr<kv::Consensus> consensus;
     std::shared_ptr<enclave::RPCSessions> rpcsessions;
     std::shared_ptr<enclave::RPCMap> rpc_map;
-    tls::KeyPairPtr node_sign_kp;
-    tls::Pem node_cert;
+    crypto::KeyPairPtr node_sign_kp;
+    crypto::Pem node_cert;
 
   public:
     JwtKeyAutoRefresh(
@@ -33,8 +33,8 @@ namespace ccf
       const std::shared_ptr<kv::Consensus>& consensus,
       const std::shared_ptr<enclave::RPCSessions>& rpcsessions,
       const std::shared_ptr<enclave::RPCMap>& rpc_map,
-      const tls::KeyPairPtr& node_sign_kp,
-      tls::Pem node_cert) :
+      const crypto::KeyPairPtr& node_sign_kp,
+      crypto::Pem node_cert) :
       refresh_interval_s(refresh_interval_s),
       network(network),
       consensus(consensus),
@@ -115,9 +115,8 @@ namespace ccf
         http::headers::CONTENT_TYPE, http::headervalues::contenttype::JSON);
       request.set_body(&body);
 
-      crypto::Sha256Hash hash;
       const auto contents = node_cert.contents();
-      tls::do_hash(contents.data(), contents.size(), hash.h, MBEDTLS_MD_SHA256);
+      crypto::Sha256Hash hash({contents.data(), contents.size()});
       const std::string key_id = fmt::format("{:02x}", fmt::join(hash.h, ""));
 
       http::sign_request(request, node_sign_kp, key_id);

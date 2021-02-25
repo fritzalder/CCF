@@ -309,7 +309,7 @@ int main(int argc, char** argv)
       "--sn", subject_name, "Subject Name in node certificate, eg. CN=CCF Node")
     ->capture_default_str();
 
-  std::vector<tls::SubjectAltName> subject_alternative_names;
+  std::vector<crypto::SubjectAltName> subject_alternative_names;
   cli::add_subject_alternative_name_option(
     app,
     subject_alternative_names,
@@ -421,6 +421,19 @@ int main(int argc, char** argv)
       "Destination path to freshly created network certificate")
     ->capture_default_str()
     ->check(CLI::NonexistentPath);
+
+  CurveID curve_id = CurveID::SECP384R1;
+  std::vector<std::pair<std::string, CurveID>> curve_id_map = {
+    {"secp384r1", CurveID::SECP384R1}, {"secp256r1", CurveID::SECP256R1}};
+  app
+    .add_option(
+      "--curve-id",
+      curve_id,
+      "Elliptic curve to use as for node and network identities (used for TLS "
+      "and ledger "
+      "signatures")
+    ->transform(CLI::CheckedTransformer(curve_id_map, CLI::ignore_case))
+    ->capture_default_str();
 
   CLI11_PARSE(app, argc, argv);
 
@@ -668,6 +681,8 @@ int main(int argc, char** argv)
     ccf_config.subject_alternative_names = subject_alternative_names;
 
     ccf_config.jwt_key_refresh_interval_s = jwt_key_refresh_interval_s;
+
+    ccf_config.curve_id = curve_id;
 
     if (*start)
     {

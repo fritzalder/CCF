@@ -206,7 +206,7 @@ namespace client
     };
 
   private:
-    tls::Pem key = {};
+    crypto::Pem key = {};
     std::string key_id = "Invalid";
     std::shared_ptr<tls::Cert> tls_cert = nullptr;
 
@@ -302,11 +302,9 @@ namespace client
         const auto raw_key = files::slurp(options.key_file);
         const auto ca = files::slurp(options.ca_file);
 
-        key = tls::Pem(raw_key);
+        key = crypto::Pem(raw_key);
 
-        crypto::Sha256Hash hash;
-        tls::do_hash(
-          raw_cert.data(), raw_cert.size(), hash.h, MBEDTLS_MD_SHA256);
+        crypto::Sha256Hash hash({raw_cert.data(), raw_cert.size()});
         key_id = fmt::format("{:02x}", fmt::join(hash.h, ""));
 
         tls_cert = std::make_shared<tls::Cert>(

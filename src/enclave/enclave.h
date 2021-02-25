@@ -17,6 +17,8 @@
 #include "rpc_map.h"
 #include "rpc_sessions.h"
 
+#include <openssl/engine.h>
+
 namespace enclave
 {
   class Enclave
@@ -34,8 +36,8 @@ namespace enclave
     std::shared_ptr<ccf::Forwarder<ccf::NodeToNode>> cmd_forwarder;
     ringbuffer::WriterPtr to_host = nullptr;
     std::chrono::milliseconds last_tick_time;
+    ENGINE* rdrand_engine = nullptr;
 
-    CCFConfig ccf_config;
     StartType start_type;
 
     struct NodeContext : public ccfapp::AbstractNodeContext
@@ -63,7 +65,8 @@ namespace enclave
       const EnclaveConfig& ec,
       const CCFConfig::SignatureIntervals& signature_intervals,
       const ConsensusType& consensus_type_,
-      const consensus::Configuration& consensus_config) :
+      const consensus::Configuration& consensus_config,
+      const CurveID& curve_id) :
       circuit(
         ringbuffer::BufferDef{ec.to_enclave_buffer_start,
                               ec.to_enclave_buffer_size,
@@ -81,15 +84,28 @@ namespace enclave
       cmd_forwarder(std::make_shared<ccf::Forwarder<ccf::NodeToNode>>(
         rpcsessions, n2n_channels, rpc_map, consensus_type_)),
       context(ccf::historical::StateCache(
-        *network.tables, writer_factory.create_writer_to_outside()))
+        network, writer_factory.create_writer_to_outside()))
     {
       logger::config::msg() = AdminMessage::log_msg;
       logger::config::writer() = writer_factory.create_writer_to_outside();
 
+      // From
+      // https://software.intel.com/content/www/us/en/develop/articles/how-to-use-the-rdrand-engine-in-openssl-for-random-number-generation.html
+      if (
+        ENGINE_load_rdrand() != 1 ||
+        (rdrand_engine = ENGINE_by_id("rdrand")) == nullptr ||
+        ENGINE_init(rdrand_engine) != 1 ||
+        ENGINE_set_default(rdrand_engine, ENGINE_METHOD_RAND) != 1)
+      {
+        ENGINE_free(rdrand_engine);
+        throw std::runtime_error(
+          "could not initialize RDRAND engine for OpenSSL");
+      }
+
       to_host = writer_factory.create_writer_to_outside();
 
       node = std::make_unique<ccf::NodeState>(
-        writer_factory, network, rpcsessions, share_manager);
+        writer_factory, network, rpcsessions, share_manager, curve_id);
       context.node_state = node.get();
 
       rpc_map->register_frontend<ccf::ActorsType::members>(
@@ -119,9 +135,18 @@ namespace enclave
         signature_intervals.sig_ms_interval);
     }
 
+    ~Enclave()
+    {
+      if (rdrand_engine)
+      {
+        ENGINE_finish(rdrand_engine);
+        ENGINE_free(rdrand_engine);
+      }
+    }
+
     bool create_new_node(
       StartType start_type_,
-      const CCFConfig& ccf_config_,
+      CCFConfig&& ccf_config_,
       uint8_t* node_cert,
       size_t node_cert_size,
       size_t* node_cert_len,
@@ -134,12 +159,11 @@ namespace enclave
       // <= node_cert_size is checked by the EDL-generated wrapper
 
       start_type = start_type_;
-      ccf_config = ccf_config_;
 
       ccf::NodeCreateInfo r;
       try
       {
-        r = node->create(start_type, ccf_config);
+        r = node->create(start_type, std::move(ccf_config_));
       }
       catch (const std::runtime_error& e)
       {
@@ -297,7 +321,7 @@ namespace enclave
               {
                 if (node->is_verifying_snapshot())
                 {
-                  node->verify_snapshot_end(ccf_config);
+                  node->verify_snapshot_end();
                 }
                 else
                 {
@@ -323,13 +347,13 @@ namespace enclave
         {
           // When joining from a snapshot, deserialise ledger suffix to verify
           // snapshot evidence. Otherwise, attempt to join straight away
-          if (!ccf_config.startup_snapshot.empty())
+          if (node->is_verifying_snapshot())
           {
             node->start_ledger_recovery();
           }
           else
           {
-            node->join(ccf_config);
+            node->join();
           }
         }
         else if (start_type == StartType::Recover)

@@ -22,7 +22,7 @@ namespace ccf
       std::shared_ptr<ProgressTrackerStore> store_, kv::NodeId id_) :
       store(store_),
       id(id_),
-      entropy(tls::create_entropy())
+      entropy(crypto::create_entropy())
     {}
 
     std::shared_ptr<ProgressTrackerStore> store;
@@ -555,11 +555,7 @@ namespace ccf
 
     void hash_data(Nonce& data, crypto::Sha256Hash& hash)
     {
-      tls::do_hash(
-        reinterpret_cast<const uint8_t*>(&data),
-        data.h.size(),
-        hash.h,
-        MBEDTLS_MD_SHA256);
+      hash = crypto::Sha256Hash({data.h.data(), data.h.size()});
     }
 
     kv::Consensus::SeqNo get_highest_committed_nonce()
@@ -716,7 +712,7 @@ namespace ccf
 
   private:
     kv::NodeId id;
-    std::shared_ptr<tls::Entropy> entropy;
+    std::shared_ptr<crypto::Entropy> entropy;
     kv::Consensus::SeqNo highest_commit_level = 0;
     kv::TxID highest_prepared_level = {0, 0};
 
