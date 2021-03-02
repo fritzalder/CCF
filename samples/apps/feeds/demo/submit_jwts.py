@@ -18,14 +18,14 @@ CCF_MEMBER_KEY = os.path.join(CCF_WORKSPACE, "member0_privk.pem")
 CCF_MEMBER_CERT = os.path.join(CCF_WORKSPACE, "member0_cert.pem")
 
 
-def populate_feed(data_dir: Path, issuer_name: str, ccf_host: str, ccf_port: str):
+def populate_feed(data_dir: Path, issuer_name: str, ccf_host: str, ccf_port: str, no_key_server: bool):
     client = ccf.clients.CCFClient(ccf_host, ccf_port, CCF_CA)
 
     feed_dir = data_dir / issuer_name
 
     # temporary until cert fetching moves to app
     jwt_issuer = f"https://localhost/{issuer_name}"
-    tls_cert_path = data_dir / "tls_cert.pem"
+    tls_cert_path = None if no_key_server else data_dir / "tls_cert.pem"
     propose_jwt_issuer(jwt_issuer, tls_cert_path, feed_dir, ccf_host, ccf_port)
 
     r = client.post(f"/app/register", {"issuer": f"localhost/{issuer_name}"})
@@ -66,33 +66,33 @@ def propose_jwt_issuer(issuer, ca_cert_path, feed_dir, ccf_host: str, ccf_port: 
         signing_auth=ccf.clients.Identity(CCF_MEMBER_KEY, CCF_MEMBER_CERT, "member"),
     )
 
-    ca_cert_name = issuer
-    proposal, vote = ccf.proposal_generator.set_ca_cert(ca_cert_name, ca_cert_path)
+    if ca_cert_path:
+        ca_cert_name = issuer
+        proposal, vote = ccf.proposal_generator.set_ca_cert(ca_cert_name, ca_cert_path)
 
-    r = member_client.post(
-        "/gov/proposals",
-        body=proposal,
-    )
-    assert r.status_code == HTTPStatus.OK.value
+        r = member_client.post(
+            "/gov/proposals",
+            body=proposal,
+        )
+        assert r.status_code == HTTPStatus.OK.value
 
-    # temporary to avoid waiting until CCF's JWT cert auto-refresh is done
     jwks_path = feed_dir / "certs"
     with open(jwks_path) as f:
         jwks = json.load(f)
 
     with tempfile.NamedTemporaryFile("w") as f:
-        json.dump(
-            {
-                "issuer": issuer,
+        obj = {
+            "issuer": issuer,
+            "jwks": jwks,
+        }
+        if ca_cert_path:
+            obj.update({
                 "auto_refresh": True,
                 "ca_cert_name": ca_cert_name,
-                "jwks": jwks,
-            },
-            f,
-        )
+            })
+        json.dump(obj, f)
         f.flush()
         proposal, vote = ccf.proposal_generator.set_jwt_issuer(f.name)
-        print(proposal)
 
     r = member_client.post(
         "/gov/proposals",
@@ -105,7 +105,7 @@ def main(args):
     data_dir = Path("data")
     data_dir.mkdir(exist_ok=True)
 
-    populate_feed(data_dir, args.issuer_name, args.host, args.port)
+    populate_feed(data_dir, args.issuer_name, args.host, args.port, args.no_key_server)
 
 
 if __name__ == "__main__":
@@ -113,6 +113,7 @@ if __name__ == "__main__":
     parser.add_argument("issuer_name", help='Name of "data" subfolder')
     parser.add_argument("--host", default=CCF_HOST_DEFAULT, help='CCF hostname')
     parser.add_argument("--port", default=CCF_PORT_DEFAULT, help='CCF port')
+    parser.add_argument("--no-key-server", action='store_true')
     args = parser.parse_args()
 
     main(args)
