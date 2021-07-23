@@ -32,6 +32,17 @@ These invariants are a modification of the invariants found [here](https://githu
 | MoreUpToDateCorrectInv   | The "up-to-date" check performed by servers before issuing a vote implies that i receives a vote from j only if i has all of j's committed entries.                         |
 | SignatureInv             | In CCF, only signature messages should ever be committed.                                                                                                                   |
 
+## Model checking with existing leader
+
+To speed up model checking, the file `MCraft_with-existing-leader.tla` provides a model checking configuration that:
+
+1. Reduces the set of possible Servers to 4
+2. Preconfigures NodeOne as a Leader from the start to skip the initial voting phase
+3. Enables a symmetry set
+4. Reduces the Term limit to 2
+
+On a 32 core machine, this preinitialized configuration only takes ~ 16 minutes when no client request is allowed which makes it more feasible to run than the full `MCraft.tla` model.
+
 ## Note on liveness
 
 This specification was created to verify certain _persistence_ (i.e. safety) properties of the Raft protocol as it is

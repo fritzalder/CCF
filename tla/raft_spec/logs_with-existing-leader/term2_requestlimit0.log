@@ -1,0 +1,43 @@
+./tlc.sh raft_spec/MCraft_with-existing-leader.tla -deadlock
+TLC2 Version 2.16 of 31 December 2020 (rev: cdddf55)
+Running breadth-first search Model-Checking with fp 18 and seed 6686968863765161729 with 32 workers on 32 cores with 441600MB heap and 64MB offheap memory [pid: 4632] (Linux 5.4.0-1048-azure amd64, Ubuntu 11.0.11 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /mnt/tla/tla/raft_spec/MCraft.tla
+Parsing file /mnt/tla/tla/raft_spec/ccfraft.tla
+Parsing file /tmp/TLC.tla
+Parsing file /tmp/Naturals.tla
+Parsing file /tmp/FiniteSets.tla
+Parsing file /tmp/Sequences.tla
+Semantic processing of module Naturals
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module TLC
+Semantic processing of module ccfraft
+Semantic processing of module MCraft
+Starting... (2021-07-22 15:48:17)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2021-07-22 15:48:19.
+Progress(13) at 2021-07-22 15:48:22: 36,508 states generated (36,508 s/min), 14,474 distinct states found (14,474 ds/min), 6,585 states left on queue.
+Progress(22) at 2021-07-22 15:49:22: 5,748,015 states generated (5,711,507 s/min), 1,473,688 distinct states found (1,459,214 ds/min), 521,788 states left on queue.
+Progress(22) at 2021-07-22 15:50:22: 12,460,237 states generated (6,712,222 s/min), 2,988,597 distinct states found (1,514,909 ds/min), 925,808 states left on queue.
+Progress(23) at 2021-07-22 15:51:22: 21,265,918 states generated (8,805,681 s/min), 4,885,603 distinct states found (1,897,006 ds/min), 1,323,722 states left on queue.
+Progress(24) at 2021-07-22 15:52:22: 30,672,578 states generated (9,406,660 s/min), 6,839,091 distinct states found (1,953,488 ds/min), 1,641,150 states left on queue.
+Progress(25) at 2021-07-22 15:53:22: 40,167,805 states generated (9,495,227 s/min), 8,767,536 distinct states found (1,928,445 ds/min), 1,879,824 states left on queue.
+Progress(26) at 2021-07-22 15:54:22: 49,653,862 states generated (9,486,057 s/min), 10,656,411 distinct states found (1,888,875 ds/min), 2,044,850 states left on queue.
+Progress(27) at 2021-07-22 15:55:22: 59,277,653 states generated (9,623,791 s/min), 12,542,505 distinct states found (1,886,094 ds/min), 2,156,984 states left on queue.
+Progress(28) at 2021-07-22 15:56:22: 68,884,712 states generated (9,607,059 s/min), 14,397,592 distinct states found (1,855,087 ds/min), 2,224,708 states left on queue.
+Progress(29) at 2021-07-22 15:57:22: 78,385,791 states generated (9,501,079 s/min), 16,204,570 distinct states found (1,806,978 ds/min), 2,230,442 states left on queue.
+Progress(30) at 2021-07-22 15:58:22: 87,968,700 states generated (9,582,909 s/min), 18,001,957 distinct states found (1,797,387 ds/min), 2,145,049 states left on queue.
+Progress(31) at 2021-07-22 15:59:22: 97,391,110 states generated (9,422,410 s/min), 19,747,041 distinct states found (1,745,084 ds/min), 2,044,162 states left on queue.
+Progress(32) at 2021-07-22 16:00:22: 106,938,099 states generated (9,546,989 s/min), 21,503,297 distinct states found (1,756,256 ds/min), 1,865,480 states left on queue.
+Progress(33) at 2021-07-22 16:01:22: 116,526,390 states generated (9,588,291 s/min), 23,232,169 distinct states found (1,728,872 ds/min), 1,596,704 states left on queue.
+Progress(33) at 2021-07-22 16:02:22: 126,081,107 states generated (9,554,717 s/min), 24,949,386 distinct states found (1,717,217 ds/min), 1,234,740 states left on queue.
+Progress(35) at 2021-07-22 16:03:22: 135,636,937 states generated (9,555,830 s/min), 26,635,691 distinct states found (1,686,305 ds/min), 731,279 states left on queue.
+Model checking completed. No error has been found.
+  Estimates of the probability that TLC did not check all reachable states
+  because two distinct states had the same fingerprint:
+  calculated (optimistic):  val = 1.8E-4
+  based on the actual fingerprints:  val = 2.7E-5
+143632681 states generated, 28016382 distinct states found, 0 states left on queue.
+The depth of the complete state graph search is 47.
+The average outdegree of the complete state graph is 1 (minimum is 0, the maximum 17 and the 95th percentile is 3).
+Finished in 16min 01s at (2021-07-22 16:04:19)

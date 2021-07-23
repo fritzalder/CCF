@@ -460,9 +460,15 @@ AdvanceCommitIndex(i) ==
          \* only advance if necessary (this is basically a sanity check after the Min above)
         /\ commitIndex[i] < new_index 
         /\ commitIndex' = [commitIndex EXCEPT ![i] = new_index]
-        /\ committedLogDecrease' = \/ ( new_index < Len(new_log) )
-                                   \/ \E j \in 1..Len(committedLog) : new_log[j] /= committedLog[j]
-        /\ committedLog' = new_log
+        /\ committedLogDecrease' = \/ ( new_index < Len(new_log) ) \* This would be a TLA error and should not happen
+                                   \* When an old, stale leader exists after a reconfiguration, it may catch up 
+                                   \* to the commitIndex and could thus decrease the committedLog as it is implemented here.
+                                   \* However, this would not be an issue as long as the committedLog entries are equal to the
+                                   \* old committedLog.
+                                   \/ \E j \in 1..Len(Min({committedLog, new_log}) : new_log[j] /= committedLog[j]
+        \* Only update committed log if we make it longer (the leader may sometimes catch up and make it shorter
+            \* but in these cases the new log should be a prefix of the committed log)
+        /\ committedLog' = IF Len(new_log) > Len(committedLog) THEN new_log ELSE committedLog 
         \* If commit index surpasses the next configuration, pop the first config, and eventually retire as leader
         /\ \/ /\ Len(Configurations[i]) > 1
               /\ new_index >= Configurations[i][2][1]
