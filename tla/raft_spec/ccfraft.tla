@@ -465,7 +465,7 @@ AdvanceCommitIndex(i) ==
                                    \* to the commitIndex and could thus decrease the committedLog as it is implemented here.
                                    \* However, this would not be an issue as long as the committedLog entries are equal to the
                                    \* old committedLog.
-                                   \/ \E j \in 1..Len(Min({committedLog, new_log}) : new_log[j] /= committedLog[j]
+                                   \/ \E j \in 1..Len(Min({committedLog, new_log})) : new_log[j] /= committedLog[j]
         \* Only update committed log if we make it longer (the leader may sometimes catch up and make it shorter
             \* but in these cases the new log should be a prefix of the committed log)
         /\ committedLog' = IF Len(new_log) > Len(committedLog) THEN new_log ELSE committedLog 

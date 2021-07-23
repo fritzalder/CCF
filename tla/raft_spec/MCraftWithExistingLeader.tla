@@ -1,5 +1,5 @@
 
----------- MODULE MCraft ----------
+---------- MODULE MCraftWithExistingLeader ----------
 EXTENDS ccfraft, TLC
 
 \* This version of the spec starts with one Leader and only increases its server set to up to four nodes.
